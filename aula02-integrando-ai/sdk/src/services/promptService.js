@@ -23,11 +23,13 @@ export class PromptService {
     }
 
     prompt(text) {
-        this.#messages.push({
-            role: 'user',
-            content: text,
-        })
-
-        return this.#session.prompt(this.#messages)
+            this.#messages.push({
+                role: 'user',
+                content: text,
+            })
+            if (!this.#session) {
+                throw new Error('Sessão não inicializada. Aguarde o carregamento do modelo antes de enviar mensagens.');
+            }
+            return this.#session.prompt(this.#messages)
     }
 }

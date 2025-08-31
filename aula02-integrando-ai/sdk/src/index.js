@@ -28,7 +28,7 @@ import { ChatbotController } from './controllers/chatBotController.js';
     const chatbotView = new ChatbotView(config);
     const controller = new ChatbotController({ chatbotView, promptService });
     const text = systemPrompt.concat('\n', llmsTxt)
-    controller.init({
+    await controller.init({
         firstBotMessage: config.firstBotMessage,
         text,
     });
