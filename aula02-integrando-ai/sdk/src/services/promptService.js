@@ -22,7 +22,7 @@ export class PromptService {
         return this.#session
     }
 
-    prompt(text) {
+    prompt(text, signal) {
             this.#messages.push({
                 role: 'user',
                 content: text,
@@ -30,6 +30,9 @@ export class PromptService {
             if (!this.#session) {
                 throw new Error('Sessão não inicializada. Aguarde o carregamento do modelo antes de enviar mensagens.');
             }
-            return this.#session.promptStreaming(this.#messages)
+            return this.#session.promptStreaming(this.#messages, {
+                signal
+            })
+            
     }
 }

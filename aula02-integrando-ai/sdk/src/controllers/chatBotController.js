@@ -6,7 +6,7 @@
  */
 
 export class ChatbotController {
-
+    #abortController;
     #chatbotView;
     #promptService;
 
@@ -37,6 +37,7 @@ export class ChatbotController {
     }
 
     #handleStop() {
+        this.#abortController.abort();
     }
 
     async #chatBotReply(userMsg) {
@@ -44,33 +45,48 @@ export class ChatbotController {
         this.#chatbotView.showTypingIndicator();
         this.#chatbotView.setInputEnabled(false);
 
-        const response = await this.#promptService.prompt(userMsg)
-        const contentNode = this.#chatbotView.createStreamingBotMessage()
-        let fullResponse = ''
-        let lastMessage = 'noop'
-        const updateText = () => {
-            if(!fullResponse) return
-            if(fullResponse === lastMessage) return
+        try {
+            this.#abortController = new AbortController();
+            const response = await this.#promptService.prompt(userMsg, this.#abortController.signal)
+            const contentNode = this.#chatbotView.createStreamingBotMessage()
+            let fullResponse = ''
+            let lastMessage = 'noop'
+            const updateText = () => {
+                if(!fullResponse) return
+                if(fullResponse === lastMessage) return
 
-            lastMessage = fullResponse
+                lastMessage = fullResponse
+                this.#chatbotView.hideTypingIndicator();
+                this.#chatbotView.updateStreamingBotMessage(contentNode, fullResponse)
+            
+            }
+
+            const intervalId = setInterval(updateText, 200)
+            const stopGenerating = () => {
+                clearInterval(intervalId)
+                this.#chatbotView.setInputEnabled(true);
+            }
+
+            this.#abortController.signal.addEventListener(
+                'abort', stopGenerating
+            )
+
+
+            for await (const chunk of response) {
+                fullResponse += chunk
+            }
+            console.log('response', fullResponse)
+            stopGenerating();
+            
+        } catch (error) {
             this.#chatbotView.hideTypingIndicator();
-            this.#chatbotView.updateStreamingBotMessage(contentNode, fullResponse)
+            if(error.name === 'AbortError') {
+                return console.log('request aborted by user')
+            }
+            this.#chatbotView.appendBotMessage('Error ao receber resposta da IA: ' + error.message);
         }
 
-        const intervalId = setInterval(updateText, 200)
-        const stopGenerating = () => {
-            clearInterval(intervalId)
-            this.#chatbotView.setInputEnabled(true);
-        }
-
-
-        for await (const chunk of response) {
-            fullResponse += chunk
-        }
-        console.log('response', fullResponse)
-        stopGenerating();
-
-        this.#chatbotView.appendBotMessage(response);
+        // this.#chatbotView.appendBotMessage(response);
         this.#chatbotView.setInputEnabled(true);
         this.#chatbotView.hideTypingIndicator();
     }
