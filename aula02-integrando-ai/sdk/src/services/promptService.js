@@ -30,6 +30,6 @@ export class PromptService {
             if (!this.#session) {
                 throw new Error('Sessão não inicializada. Aguarde o carregamento do modelo antes de enviar mensagens.');
             }
-            return this.#session.prompt(this.#messages)
+            return this.#session.promptStreaming(this.#messages)
     }
 }
